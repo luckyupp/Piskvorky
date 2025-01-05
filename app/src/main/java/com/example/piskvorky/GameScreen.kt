@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -27,6 +28,7 @@ import com.example.piskvorky.GameResult
 @Composable
 fun GameScreen(viewModel: GameViewModel) {
     val gameState by viewModel.gameState.collectAsState()
+    var showHistory by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -155,18 +157,67 @@ fun GameScreen(viewModel: GameViewModel) {
                 }
             }
 
-            // Reset Button
-            Button(
-                onClick = { viewModel.resetGame() },
+            // Row with Reset and History Buttons
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Reset Game")
+                // History Button
+                Button(
+                    onClick = { showHistory = true },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text("Historie her")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Reset Button
+                Button(
+                    onClick = { viewModel.resetGame() },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Reset hry")
+                }
             }
+        }
+
+        // History Dialog
+        if (showHistory) {
+            AlertDialog(
+                onDismissRequest = { showHistory = false },
+                title = { Text("Historie her") },
+                text = {
+                    Column {
+                        val history = viewModel.getGameHistory()
+                        val statistics = viewModel.getGameStatistics()
+                        Text("Celkové hry: ${statistics.totalGames}")
+                        Text("Výhry proti PC: ${statistics.winsAgainstPC}")
+                        Text("Prohry proti PC: ${statistics.lossesAgainstPC}")
+                        Text("Winrate: ${"%.2f".format(statistics.winRateAgainstPC)}%")
+                        Spacer(Modifier.height(8.dp))
+                        LazyColumn {
+                            items(history.size) { index ->
+                                val entry = history[index]
+                                Text("${entry.playerX} vs ${entry.playerO} - Vítěz: ${entry.winner}")
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { showHistory = false }) {
+                        Text("Zavřít")
+                    }
+                }
+            )
         }
     }
 }

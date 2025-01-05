@@ -15,7 +15,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val viewModel: GameViewModel by viewModels()
+        val gameHistoryManager = GameHistoryManager(applicationContext)
+        val viewModelFactory = GameViewModelFactory(gameHistoryManager)
+        val viewModel: GameViewModel by viewModels { viewModelFactory }
 
         setContent {
             PiskvorkyTheme {
