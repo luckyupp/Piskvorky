@@ -148,10 +148,7 @@ class GameViewModel(private val gameHistoryManager: GameHistoryManager) : ViewMo
      */
     fun getGameHistory(): List<GameHistoryEntry> = gameHistoryManager.getHistory()
 
-    /**
-     * Returns the game statistics.
-     */
-    fun getGameStatistics(): GameStatistics = gameHistoryManager.getStatistics()
+
 }
 
 class GameViewModelFactory(private val gameHistoryManager: GameHistoryManager) : ViewModelProvider.Factory {
