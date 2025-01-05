@@ -1,4 +1,4 @@
-package com.example.piskvorky.ui.screens
+package com.example.piskvorky
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,15 +20,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+import com.example.piskvorky.*
 import com.example.piskvorky.CellState
 import com.example.piskvorky.GameViewModel
 import com.example.piskvorky.GameMode
 import com.example.piskvorky.GameResult
+import java.text.SimpleDateFormat
+import java.util.Locale
 
+/**
+ * Main game screen for the Tic-Tac-Toe application.
+ * Displays the game board, game status, current player, and history toggle.
+ * Allows selecting a cell and tracks the currently selected position.
+ */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun GameScreen(viewModel: GameViewModel) {
     val gameState by viewModel.gameState.collectAsState()
+    var showHistory by remember { mutableStateOf(false) } // Toggle between game board and history view
+    var selectedPosition by remember { mutableStateOf<Pair<Int, Int>?>(null) } // Track selected cell position
 
     Scaffold(
         topBar = {
@@ -51,57 +64,13 @@ fun GameScreen(viewModel: GameViewModel) {
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Game Board
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(15),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-            ) {
-                items(gameState.board.flatten().size) { index ->
-                    val row = index / 15 // Compute the row
-                    val col = index % 15 // Compute the column
-
-                    val cellState = gameState.board[row][col]
-
-                    Box(
-                        modifier = Modifier
-                            .aspectRatio(1f)
-                            .clickable(enabled = cellState == CellState.EMPTY) {
-                                viewModel.makeMove(row, col)
-                            }
-                            .border(0.5.dp, MaterialTheme.colorScheme.outline),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = when (cellState) {
-                                CellState.X -> "X"
-                                CellState.O -> "O"
-                                CellState.EMPTY -> ""
-                            },
-                            style = MaterialTheme.typography.headlineMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp
-                            ),
-                            color = when (cellState) {
-                                CellState.X -> Color.Blue
-                                CellState.O -> Color.Red
-                                CellState.EMPTY -> Color.Unspecified
-                            }
-                        )
-                    }
-                }
-            }
-
-
             // Game Status
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(vertical = 8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -120,6 +89,32 @@ fun GameScreen(viewModel: GameViewModel) {
                             GameResult.ONGOING -> "Current Player: ${if (gameState.currentPlayer == CellState.X) "X" else "O"}"
                         },
                         style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Selected Position
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    val positionText = selectedPosition?.let { (row, col) ->
+                        "Selected Position: Row ${row + 1}, Column ${col + 1}"
+                    } ?: "No position selected"
+                    Text(
+                        text = positionText,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -155,17 +150,90 @@ fun GameScreen(viewModel: GameViewModel) {
                 }
             }
 
-            // Reset Button
-            Button(
-                onClick = { viewModel.resetGame() },
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Game Board or History
+            Box(modifier = Modifier.weight(1f)) {
+                if (!showHistory) {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(15),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                    ) {
+                        items(gameState.board.flatten().size) { index ->
+                            val row = index / 15
+                            val col = index % 15
+                            val cellState = gameState.board[row][col]
+
+                            Box(
+                                modifier = Modifier
+                                    .aspectRatio(1f)
+                                    .clickable(enabled = cellState == CellState.EMPTY) {
+                                        viewModel.makeMove(row, col)
+                                        selectedPosition = row to col // Update selected position
+                                    }
+                                    .border(0.5.dp, MaterialTheme.colorScheme.outline),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = when (cellState) {
+                                        CellState.X -> "X"
+                                        CellState.O -> "O"
+                                        CellState.EMPTY -> ""
+                                    },
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    ),
+                                    color = when (cellState) {
+                                        CellState.X -> Color.Blue
+                                        CellState.O -> Color.Red
+                                        CellState.EMPTY -> Color.Unspecified
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    val history = viewModel.getGameHistory()
+
+                    HistoryScreen(
+                        history = history,
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Toggle and Reset Buttons
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("Reset Game")
+                Button(
+                    onClick = { showHistory = !showHistory },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (showHistory) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.secondary
+                    )
+                ) {
+                    Text(if (showHistory) "Back to Game" else "View History")
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = { viewModel.resetGame() },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Restart")
+                }
             }
         }
     }
